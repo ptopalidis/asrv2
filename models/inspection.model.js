@@ -25,6 +25,9 @@ const inspectionSchema = new mongoose.Schema({
     inadequateCategory:{
         type:Boolean
     },
+    forcePerfect:{
+        type:Boolean
+    },
     result:{
         type:Number
     }
