@@ -2,6 +2,12 @@
 const inspectionModel = require("../models/inspection.model");
 const preInspectionModel = require("../models/preInspection.model");
 const sprayerModel = require("../models/sprayer.model")
+const customerModel = require("../models/customer.model")
+const categoryModel = require("../models/category.model")
+
+//Libraries
+const fs = require("fs")
+const path = require("path");
 
 
 exports.postInspection = async(req,res)=>{
@@ -86,14 +92,39 @@ exports.updateInspection = async(req,res)=>{
 
 
 exports.getInspections = async(req,res)=>{
-    await inspectionModel.find(req.query,(error,inspections)=>{
-        if(error){
-            res.send({error:"Υπήρξε ένα πρόβλημα."});
-            return;
+    console.log(req.query)
+    var limit = Number(req.query.limit)
+    var page = Number(req.query.page)
+    var filters = await parseFilters(req)
+    console.log(filters)
+    try{
+        var inspections = await inspectionModel
+      
+        .find(filters)
+        .limit(limit)
+        .skip( page*limit)
+       
+
+        var inspectionsNumber =  await inspectionModel.count(filters);
+
+        console.log(inspectionsNumber)
+
+        res.send({error:null,inspections:inspections,number:inspectionsNumber})
+    }
+    catch(e){
+        if(e){
+            console.log(e)
+            res.send({error:"Υπήρξε ένα πρόβλημα."})
         }
-        res.send({error:null,inspections:inspections})
-    })
+    }
+
 }
+
+exports.getTotalInspectionsNumber = async(req,res)=>{
+    var inspectionsNumber  = await inspectionModel.count(req.body.filters);
+    res.send({error:null,inspectionsNumber:inspectionsNumber})
+}
+
 
 exports.getRegionByInspectionID = async (req,res)=>{
     console.log("req")
@@ -104,6 +135,88 @@ exports.getRegionByInspectionID = async (req,res)=>{
     res.send({region:sprayer.region})
 }
 
+
+exports.generateInspectionsReportWeb= async(req,res)=>{
+    console.log(req.query)
+
+    var filters = await parseFilters(req)
+    console.log(filters)
+    try{
+        var inspections = await inspectionModel  
+        .find(filters)
+        res.send({error:null,inspections:inspections,number:inspectionsNumber})
+    }
+    catch(e){
+        if(e){
+            console.log(e)
+            res.send({error:"Υπήρξε ένα πρόβλημα."})
+        }
+    }
+
+
+    
+}
+
+exports.generateInspectionsReportCSV= async(req,res)=>{
+    var filters = await parseFilters(req)
+
+    console.log(filters)
+    try{
+        var inspections = await inspectionModel  
+        .find(filters)
+
+        console.log(req.body.userID)
+ 
+        fs.writeFileSync(path.join(__dirname,"../tmp","inspections.csv"),"")
+        fs.appendFileSync(path.join(__dirname,"../tmp","inspections.csv"),"Αριθμός επιθεώρησης,Ονοματεπώνυμο,ΑΦΜ,Τηλέφωνο,Κατηγορία ΕΕΓΦ,Τύπος Κίνησης,Αριθμός σειράς,Κατασκευαστής,Εμπορική ονομασία,Παλαιότητα (έτη), Δήλωση πιστότητας (CE),Αριθμός δεξαμενών,Χωρητικότητα δεξαμενής (lt), Αριθμος μπεκ, Μήκος βραχιόνων (m),Ημερομηνία επιθεώρησης,Περιφεριακή ενότητα, Αριθμός sticker,Πιστοποιητικό",{encoding: 'utf8'});
+
+        for(var i of inspections){
+            var currPreInspection = await preInspectionModel.findOne({_id:i.preInspectionID})
+            var currSprayer = await sprayerModel.findOne({_id:currPreInspection.sprayerID})
+            var currCategory = await categoryModel.findOne({_id:currSprayer.categoryID})
+            var customers = [];
+
+            for(var c of currSprayer.customers){
+                var currCustomer = await customerModel.findOne({_id:c.customerID})
+                if(currCustomer){
+                    customers.push(currCustomer)
+                }
+            }
+            var inspectionData=[
+                i.inspectionNumber,
+                customers.map(c=>c.name + " " + c.surname).join("|"),
+                customers.map(c=>c.AFM).join("|"),
+                customers.map(c=>c.phone).join("|"),
+                currCategory.name,
+                currSprayer.movementType,
+                currSprayer.serialNumber,
+                currSprayer.manufacturer,
+                currSprayer.commercialName,
+                currSprayer.age,
+                currSprayer.ceCompliance?"ΝΑΙ":"ΟΧΙ",
+                currSprayer.tanksNumber,
+                currSprayer.totalTanksCapacity,
+                currSprayer.branches.reduce((a,b)=>a + b.injectors.length,0),
+                currSprayer.totalArmLength,
+                new Date(i.date).toDateString(),
+                currSprayer.region,
+                i.stickerNumber,
+                "https://asrv2.com/inspections/" + i._id + "/report?userID" + filters.userID
+            ]
+            fs.appendFileSync(path.join(__dirname,"../tmp","inspections.csv"),"\n" + inspectionData.join(","),{encoding: 'utf8'});
+        }
+
+        res.sendFile(path.join(__dirname,"../tmp","inspections.csv"))
+    }
+    catch(e){
+        if(e){
+            console.log(e)
+            res.send({error:"Υπήρξε ένα πρόβλημα."})
+        }
+    }
+
+
+}
 
 
 async function validateStickerNumber(stickerNumber, inspectionID,userID){
@@ -139,4 +252,55 @@ async function validateInspectionNumber(inspectionNumber,inspectionID,userID){
         return {error:null}
     }
 
+}
+
+async function parseFilters(req){
+
+    var filters = {}
+    var preInspections = [];
+    var sprayersFilter = { userID:req.body.filters.userID};
+
+    if(req.body.filters.userID){
+        filters.userID = req.body.filters.userID
+    }
+    
+    if(req.body.filters.customerID){
+        sprayersFilter = {...sprayersFilter,   customers:{
+            $elemMatch:{
+                customerID:req.body.filters.customerID
+            }
+        }};
+    }
+    if(req.body.filters.region){
+        sprayersFilter={...sprayersFilter,region:req.body.filters.region}
+    }
+    if(req.body.filters.customerID || req.body.filters.region){
+        console.log(sprayersFilter)
+        var sprayers = await sprayerModel.find(sprayersFilter)
+
+        for(var s of sprayers){
+            var currPreInspection = await preInspectionModel.findOne({sprayerID:s._id,    userID:filters.userID});
+            if(currPreInspection){
+                preInspections.push(currPreInspection._id)
+            }
+        }
+
+        
+        filters.preInspectionID = {$in:preInspections}
+    }
+      
+    if(req.body.filters.stickerNumber){
+       filters.stickerNumber = req.body.filters.stickerNumber
+    }
+    if(req.body.filters.inspectionNumber){
+        filters.inspectionNumber = req.body.filters.inspectionNumber
+    }   
+    if(req.body.filters.dateRange){
+        filters.date = {
+            $gte: new Date(req.body.filters.dateRange[0]).setHours(0,0,0,0), 
+            $lt: new Date(req.body.filters.dateRange[1]).setHours(24,0,0,0)
+        }
+    }
+
+    return filters;
 }

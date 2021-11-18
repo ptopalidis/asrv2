@@ -5,9 +5,12 @@ var router = express.Router();
 const inspectionController = require("../controllers/inspection.controller")
 
 router.post("/",inspectionController.postInspection)
+router.post("/report/web",inspectionController.generateInspectionsReportWeb)
+router.post("/report/csv",inspectionController.generateInspectionsReportCSV)
 router.get("/byInspectionNumber",inspectionController.getInspectionByInspectionNumber)
 router.get("/:inspectionID",inspectionController.getInspection)
-router.get("/",inspectionController.getInspections)
+router.post("/filter",inspectionController.getInspections)
+router.post("/number",inspectionController.getTotalInspectionsNumber)
 router.put("/:inspectionID",inspectionController.updateInspection)
 
 
