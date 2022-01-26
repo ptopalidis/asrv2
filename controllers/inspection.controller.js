@@ -203,6 +203,7 @@ exports.generateInspectionsReportCSV= async(req,res)=>{
                 i.stickerNumber,
                 "https://asrv2.com/inspections/" + i._id + "/report?userID" + filters.userID
             ]
+            res.charset = 'utf8';
             fs.appendFileSync(path.join(__dirname,"../tmp","inspections.csv"),"\n" + inspectionData.join(","),{encoding: 'utf8'});
         }
 
@@ -265,7 +266,7 @@ async function parseFilters(req){
     }
     
     if(req.body.filters.customerID){
-        sprayersFilter = {...sprayersFilter,   customers:{
+        sprayersFilter = {...sprayersFilter,customers:{
             $elemMatch:{
                 customerID:req.body.filters.customerID
             }
@@ -279,7 +280,7 @@ async function parseFilters(req){
         var sprayers = await sprayerModel.find(sprayersFilter)
 
         for(var s of sprayers){
-            var currPreInspection = await preInspectionModel.findOne({sprayerID:s._id,    userID:filters.userID});
+            var currPreInspection = await preInspectionModel.findOne({sprayerID:s._id,userID:filters.userID});
             if(currPreInspection){
                 preInspections.push(currPreInspection._id)
             }

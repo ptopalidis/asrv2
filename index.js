@@ -14,6 +14,7 @@ const sprayerRouter = require("./routers/sprayer.router")
 const preInspectionRouter = require("./routers/preInspection.router")
 const inspectionRouter = require("./routers/inspection.router")
 const importsRouter = require("./routers/imports.router")
+const pdfRouter = require("./routers/pdf.router")
 
 //Middlewares
 const dbConnect = require('./middlewares/dbConnect');
@@ -43,6 +44,7 @@ app.use("/api/sprayers",sprayerRouter)
 app.use("/api/preInspections",preInspectionRouter)
 app.use("/api/inspections",inspectionRouter)
 app.use("/api/imports",importsRouter)
+app.use("/api/pdf",pdfRouter)
 
 app.get("*",(req,res)=>{
     res.sendFile(path.join(__dirname,"public","index.html"))
