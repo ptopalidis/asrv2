@@ -20,10 +20,21 @@ exports.postUserLogin = async(req,res)=>{
 
 
 exports.getUser = async(req,res)=>{
+
+    console.log(req.params.userID);
+
+    if(!req.params.userID||req.params.userID=="null"){ 
+        res.send({error:null,user:{
+            notPaid:true
+        }}); 
+        return;
+    }
+    //var user = null
     var user = await UserModel.findOne({_id:req.params.userID});
 
     if(!user){
         res.send({error:"Υπήρξε ένα πρόβλημα με την εύρεση του χρήστη. Παρακαλώ δοκιμάστε ξανά ή επικοινωνήστε με τον προγραμματιστή."})
+        return;
     }
 
     res.send({error:null,user:user});
