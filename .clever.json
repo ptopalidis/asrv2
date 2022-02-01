@@ -1,0 +1,11 @@
+{
+  "apps": [
+    {
+      "app_id": "app_fea0f6b6-88c7-498b-a0de-5a89a9f8d715",
+      "org_id": "user_1d433204-cffc-45d1-ac54-b22bcedb697d",
+      "deploy_url": "https://github.com/ptopalidis/asrv2.git",
+      "name": "asrv2",
+      "alias": "asrv2"
+    }
+  ]
+}
