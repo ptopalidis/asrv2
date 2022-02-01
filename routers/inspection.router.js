@@ -10,6 +10,7 @@ router.post("/report/csv",inspectionController.generateInspectionsReportCSV)
 router.get("/byInspectionNumber",inspectionController.getInspectionByInspectionNumber)
 router.get("/:inspectionID",inspectionController.getInspection)
 router.post("/filter",inspectionController.getInspections)
+router.post("/filter/withData",inspectionController.getInspectionsWithData)
 router.post("/number",inspectionController.getTotalInspectionsNumber)
 router.put("/:inspectionID",inspectionController.updateInspection)
 

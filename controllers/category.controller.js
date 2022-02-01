@@ -2,14 +2,23 @@
 const categoryModel = require("../models/category.model");
 
 exports.getCategory= async(req,res) =>{
-
-    await categoryModel.findOne({_id:req.params.categoryID},(error,category)=>{
-        if(error){
-            res.send({error:"Η κατηγορία δεν βρέθηκε."});
+    try{
+        if(!req.params.categoryID){
+            res.send({error:"Υπήρξε πρόβλημα με την εύρεση μιας κατηγορίας",category:null})
             return;
         }
-        res.send({error:null,category:category})
-    })
+        var category  = await categoryModel.findOne({_id:req.params.categoryID});
+        if(!category){
+            res.send({error:"Η κατηγορία " + req.params.categoryID +" δεν βρέθηκε",category:null})
+            return
+        }
+   
+    }
+    catch(e){
+        res.send({error:"Υπήρξε πρόβλημα με την εύρεση μιας κατηγορίας",category:null})
+        return;
+    }
+
 
 }
 

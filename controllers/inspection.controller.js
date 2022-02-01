@@ -91,6 +91,52 @@ exports.updateInspection = async(req,res)=>{
 }
 
 
+exports.getInspectionsWithData = async(req,res)=>{
+    console.log(req.query)
+    var limit = Number(req.query.limit)
+    var page = Number(req.query.page)
+    var filters = await parseFilters(req)
+    console.log(filters)
+    var inspectionsWithData = []
+    try{
+        var inspections = await inspectionModel
+      
+        .find(filters)
+        .limit(limit)
+        .skip( page*limit)
+
+        for(var ins of inspections){
+            var currPreInspection = await preInspectionModel.findOne({_id:ins.preInspectionID});
+            var currSprayer = currPreInspection?await sprayerModel.findOne({_id:currPreInspection.sprayerID}):null
+            var customerIDs = currSprayer?currSprayer.customers.map(e=>e.customerID):[]
+            var currCustomers = await customerModel.find({_id:{$in:customerIDs}})
+            var currCategory = currSprayer?await categoryModel.findOne({_id:currSprayer.categoryID}):null
+            inspectionsWithData.push({
+                inspection:ins,
+                preInspection:currPreInspection,
+                sprayer:currSprayer,
+                customers:currCustomers,
+                category:currCategory
+            })
+      
+        }
+       
+
+        var inspectionsNumber =  await inspectionModel.count(filters);
+
+        console.log(inspectionsNumber)
+
+        res.send({error:null,inspections:inspectionsWithData,number:inspectionsNumber})
+    }
+    catch(e){
+        if(e){
+            console.log(e)
+            res.send({error:"Υπήρξε ένα πρόβλημα."})
+        }
+    }
+
+}
+
 exports.getInspections = async(req,res)=>{
     console.log(req.query)
     var limit = Number(req.query.limit)
