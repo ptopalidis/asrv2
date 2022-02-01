@@ -46,6 +46,32 @@ exports.getInspection = async(req,res)=>{
     })
 }
 
+exports.getInspectionWithData = async(req,res)=>{
+        console.log("test")
+    try{
+        var data = {}
+        var inspection = await inspectionModel.findOne({_id:req.params.inspectionID})
+        var preInspection =inspection?await preInspectionModel.findOne({_id:inspection.preInspectionID}):null
+        var sprayer = preInspection?await sprayerModel.findOne({_id:preInspection.sprayerID}):null
+        var customerIDs = sprayer?sprayer.customers.map(e=>e.customerID):[]
+        var customers = await customerModel.find({_id:{$in:customerIDs}})
+        var category = sprayer?await categoryModel.findOne({_id:sprayer.categoryID}):null
+        data["inspection"] = inspection
+        data["preInspection"] = preInspection
+        data["sprayer"]=sprayer
+        data["customers"]=customers
+        data["category"]=category
+        res.send({error:null,inspection:data});
+        return
+    }
+    catch(e){
+        console.log(e)
+        res.send({error:"Υπήρξε ένα πρόβλημα",inspection:null});
+        return 
+    }
+   
+}
+
 exports.getInspectionByInspectionNumber = async(req,res)=>{
 
     console.log(req.query)
